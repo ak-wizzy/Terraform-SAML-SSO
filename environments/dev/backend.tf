@@ -1,7 +1,7 @@
 terraform {
   # backend "remote" {
   #   hostname     = "app.terraform.io"
-  #   organization = "ak-techno-services"
+  #   organization = "your org name here"
   #
   #   workspaces {
   #     name = "entra-id-identity"

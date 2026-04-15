@@ -1,0 +1,15 @@
+terraform.tfvars
+/environments/dev/.terraform/
+/environments/dev/.terraform.lock.hcl
+/environments/dev/terraform.tfstate.backup
+/environments/dev/terraform.tfstate
+
+/environments/prod/.terraform/
+/environments/prod/.terraform.lock.hcl
+/environments/prod/terraform.tfstate.backup
+/environments/prod/terraform.tfstate
+
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl.terraform/

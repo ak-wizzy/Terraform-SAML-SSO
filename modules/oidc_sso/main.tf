@@ -42,7 +42,7 @@ resource "tls_self_signed_cert" "saml" {
 # 2. APPLICATION REGISTRATION
 # -------------------------------
 
-resource "azuread_application" "saml_sso" {
+resource "azuread_application" "oidc_sso" {
   display_name = var.app_display_name
 
   web {
@@ -58,9 +58,9 @@ resource "azuread_application" "saml_sso" {
 # 3. SERVICE PRINCIPAL
 # -------------------------------
 
-resource "azuread_service_principal" "saml_sso_sp" {
-  client_id = azuread_application.saml_sso.client_id
-}
+#resource "azuread_service_principal" "saml_sso_sp" {
+  #client_id = azuread_application.saml_sso.client_id
+#}
 
 # -------------------------------
 # 4. ASSIGN USERS/GROUPS
@@ -80,7 +80,7 @@ resource "azuread_app_role_assignment" "assignments" {
 
 resource "azuread_service_principal_certificate" "saml_cert" {
   count               = var.generate_sp_certificate ? 1 : 0
-  service_principal_id = azuread_service_principal.saml_sso_sp.id
+  service_principal_id = azuread_service_principal.oidc_sso_sp.id
   
   # EXTRACT PUBLIC CERT ONLY (no private key/chain)
   value    = tls_self_signed_cert.saml[0].cert_pem

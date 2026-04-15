@@ -11,7 +11,7 @@ reply_urls = [
 sign_on_url = "https://dev.company.com/login"
 logout_url  = "https://dev.company.com/logout"
 relay_state = "https://dev.company.com/home"
-logo_url    = ""
+#logo_url    = ""
 
 assigned_object_ids = []
 

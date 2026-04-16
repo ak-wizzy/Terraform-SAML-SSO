@@ -1,8 +1,6 @@
-app_display_name = "Dev SAML App"
+app_display_name = "Dev SAML App2"
 
-identifier_uris = [
-  "https://dev.company.com/saml/metadata"
-]
+saml_entity_id = "https://dev.company.com/saml/metadata"
 
 reply_urls = [
   "https://dev.company.com/saml/acs"
@@ -19,6 +17,6 @@ generate_sp_certificate = true
 certificate_base64      = ""
 
 custom_claims = []
-tenant_id = "YOUR-TENANT-ID-HERE"
+tenant_id     = "YOUR-TENANT-ID-HERE"
 
 notification_email_addresses = ["email@example.com"]

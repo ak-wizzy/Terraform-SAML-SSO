@@ -4,16 +4,16 @@ output "application_id" {
 }
 
 output "application_object_id" {
-  description = "Object ID of the application"
+  description = "Application object ID"
   value       = azuread_application.saml.object_id
 }
 
 output "service_principal_id" {
-  description = "Object ID of the service principal (Enterprise App)"
+  description = "Service principal object ID"
   value       = azuread_service_principal.saml_sp.id
 }
 
-output "saml_metadata_url" {
-  description = "Federation metadata URL for the Enterprise App"
-  value       = azuread_service_principal.saml_sp.saml_metadata_url
+output "service_principal_object_id" {
+  description = "Service principal object ID (explicit)"
+  value       = azuread_service_principal.saml_sp.object_id
 }

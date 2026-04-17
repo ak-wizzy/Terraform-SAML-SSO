@@ -9,93 +9,135 @@ It includes reusable modules for:
     Terraform supports lifecycle management of Entra ID resources such as Conditional Access Policies and enterprise SSO application creation through the AzureAD provider. 
 Microsoft and HashiCorp also confirm support for SAML SSO integration flow using Enterprise Applications and SAML settings in Entra ID. [youtube.com] [learn.microsoft.com], [digitalbunker365.com]
 
+## 🌍 Multi‑Environment Workflow (dev/prod)
+Each environment is fully isolated and treated as a separate Terraform workspace,
+with its own:
+- `main.tf`  
+- `variables.tf`  
+- `terraform.tfvars`  
+- `.terraform` working directory  
+- `terraform.tfstate`
+To deploy:
+### ▶ Deploy to DEV
+```sh
+cd environments/dev
+terraform init
+terraform plan
+terraform apply
+▶ Deploy to PROD
+
+
+
+Shell
+cd environments/prod
+terraform init
+terraform plan
+terraform apply
+Show more lines
+
+🔐 Authentication (AzureAD Provider v3)
+The AzureAD provider does NOT allow client_id/client_secret inside providers.tf.
+Terraform authentication must come from environment variables.
+If running locally (recommended during development):
+Run these exports in your shell:
+
+
+
+Shell
+export ARM_CLIENT_ID="APP_ID"
+export ARM_CLIENT_SECRET="SECRET"
+export ARM_TENANT_ID="TENANT_GUID"
+
+Show more lines
+You may also place them into ~/.zshrc or ~/.bashrc.
+If running in Terraform Cloud:
+Go to:
+Workspace → Variables → Environment Variables
+Add:
+    • ARM_CLIENT_ID
+    • ARM_CLIENT_SECRET
+    • ARM_TENANT_ID
+    • ARM_SUBSCRIPTION_ID
+    All secrets should be marked sensitive.
+    
+    📦 Module: modules/saml_sso
+    This module provisions a fully automated SAML SSO application in Entra ID:
+        ○ Entra ID application object
+        ○ Service principal
+        ○ SAML metadata: 
+            § Entity ID
+            § ACS URLs
+            § Sign‑on URL
+            § Logout URL
+            § RelayState
+            § Logo URL
+            § Certificate generation (TLS)
+            § Optional certificate upload
+            § Claims mapping policy (AzAPI)
+            § User/group assignments
+            Module variables are declared inside:
+            modules/saml_sso/variables.tf
+            Module values are never stored in terraform.tfvars.
+            They are always passed via the environment’s main.tf.
+            
+            📘 Environment Variable Strategy
+                □ All secrets (client_id, client_secret) → ENV vars
+                □ All root variables (tenant_id) → root variables.tf
+                □ All module inputs → environment folder main.tf
+                □ All environment-specific values → environment folder terraform.tfvars
+                This guarantees clean separation of:
+                    ® environments
+                    ® secrets
+                    ® module logic
+                    ® provider logic
+                    
+                    🏗 Backend Options
+                    This project currently uses local backend by default.
+                    To enable:
+                    ▶ Terraform Cloud backend
+                    Use a backend.tf in root only.
+                    ▶ Azure Storage backend
+                    Use a backend.tf with an azurerm block.
+                    Note:
+                    Each environment must have its own backend key / state file.
+                    
+                    🚀 Getting Started
+                        1. Install Terraform
+                        2. Install Azure CLI (if using Azure CLI authentication): 
+brew install azure-cli
+az login
+                        3. Export ARM_* environment variables (if not using CLI)
+                        4. Navigate into an environment folder: 
+cd environments/dev
+terraform init
+terraform plan
+terraform apply
+                        5. Repeat for prod when ready
+
 
 terraform-entra-id/
 │
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf             # Module calls for dev
-│   │   ├── variables.tf        # Variables needed by dev modules
-│   │   ├── terraform.tfvars    # Values for dev
-│   │   └── providers.tf        # Provider configuration (AzureAD, AzAPI, TLS)
-|   |   └── output.tf
-│   │
-│   └── prod/
-│       ├── main.tf
-│       ├── variables.tf
-│       └── terraform.tfvars
-│       └── providers.tf
-|       └── output.tf
+├── main.tf                  # Loads the correct environment
+├── providers.tf             # Providers ONLY
+├── variables.tf             # Root variables declarations (tenant_id etc.)
+├── outputs.tf               # Root outputs
 │
-└── modules/
-|     └── saml_sso/               # Example module
-├── Readme.md
-
----
-    Components Explained
-    1. Root Project (Top-Level Terraform Workspace)
-    main.tf
-    Defines which modules are being deployed in this environment.
-    Example:
-    
-    
-    
-    Terraform
-    module "my_saml_app" {
-     source = "./modules/saml_app"
-    
-     app_display_name = "My SAML App"
-     identifier_uris = ["https://app.company.com/metadata"]
-     reply_urls = ["https://app.company.com/acs"]
-    }
-    Show more lines
-    
-    2. providers.tf
-    Declares the Terraform providers:
-        ○ AzureAD provider (manages Entra ID objects)
-        ○ AzAPI provider (Graph API access for SAML claims)
-        ○ TLS provider (certificate generation)
-        The AzureAD Conditional Access provider supports creating CA policies through the azuread_conditional_access_policy resource. [youtube.com]
-        
-        3. Modules Folder
-        Contains reusable building blocks.
-        Each module is:
-            § Contained
-            § Parameter-driven
-            § Reusable across environments/tenants
-            Modules do not contain providers, backends, or Terraform blocks — those belong in the root.
-            
-            4. environments/
-            Optional but recommended.
-            Each environment:
-                □ Inherits modules
-                □ Uses the same structure
-                □ Has isolated state files (if backend is implemented)
-                □ Supports separation of Dev/Test/Prod
-                
-                Terraform Workflow
-                All Terraform commands must be executed from the root folder or from an environment folder, never from within a module.
-                Steps:
-                    1. Authenticate
-az login
-                    2. Initialize providers
-terraform init
-                    3. Validate
-terraform validate
-                    4. Preview
-terraform plan
-                    5. Deploy
-terraform apply
-                    
-                    SAML SSO Module
-                    This module supports:
-                        ◊ Entity IDs
-                        ◊ ACS URLs
-                        ◊ Sign‑on & Logout URLs
-                        ◊ RelayState
-                        ◊ Logo
-                        ◊ Custom Claims (via Claims Mapping Policy)
-                        ◊ Auto-generated SP signing certificates
-                        ◊ Certificate upload
-                        ◊ Assigning users or groups
-                        It leverages AzureAD resources for application + service principal management, which is supported by Microsoft and HashiCorp for SAML integrations. [learn.microsoft.com], [digitalbunker365.com]
+├── terraform.tfvars         # (Optional) Global defaults (NOT recommended for envs)
+│
+├── modules/
+│   └── saml_sso/
+│       ├── main.tf          # Module logic only
+│       ├── variables.tf     # Module input declarations
+│       ├── outputs.tf       # Module output declarations
+│       └── README.md
+│
+└── environments/
+    ├── dev/
+    │   ├── main.tf          # Calls module with dev settings
+    │   ├── terraform.tfvars # holds DEV values (tenant_id, module params)
+    │   └── variables.tf     # declares variables used in dev main.tf
+    │
+    └── prod/
+        ├── main.tf          # Calls module with PROD settings
+        ├── terraform.tfvars # holds PROD values
+        └── variables.tf     # declares variables used in prod main.tf

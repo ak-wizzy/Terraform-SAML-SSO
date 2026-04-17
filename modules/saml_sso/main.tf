@@ -1,17 +1,25 @@
 terraform {
   required_providers {
-    azuread = { source = "hashicorp/azuread" }
+    azuread = {
+      source = "hashicorp/azuread"
+    }
+    msgraph = {
+      source  = "microsoft/msgraph"
+      version = "~> 0.2"
+    }
   }
 }
 
-#############################
-# 1) App registration (App)
-#############################
-# Note: identifier_uris must follow Entra restrictions (e.g., api://<appId> or a verified domain)
-# https://learn.microsoft.com/en-us/entra/identity-platform/identifier-uri-restrictions
+locals {
+  saml_entity_id = var.saml_entity_id
+}
+
+########################################
+# 1) App Registration
+########################################
 resource "azuread_application" "saml" {
   display_name    = var.app_display_name
-  identifier_uris = var.identifier_uris
+  identifier_uris = [local.saml_entity_id]
 
   web {
     redirect_uris = var.reply_urls
@@ -21,59 +29,73 @@ resource "azuread_application" "saml" {
 }
 
 ########################################
-# 2) Enterprise App (Service Principal)
+# 2) Service Principal (Enterprise App)
 ########################################
 resource "azuread_service_principal" "saml_sp" {
   client_id = azuread_application.saml.client_id
 
-  # Make this a SAML app
   preferred_single_sign_on_mode = "saml"
 
-  # Helpful tags – marks this as a custom SAML Enterprise App in the UI
   feature_tags {
     custom_single_sign_on = true
     enterprise            = true
   }
 
-  # Optional: set RelayState for SP-initiated flows
-  saml_single_sign_on {
-    relay_state = var.relay_state
-  }
-
-  # Optional: set a launch URL (visible in MyApps)
   login_url = var.sign_on_url
-
-  notification_email_addresses = var.notification_email_addresses
 }
 
+########################################
+# 3) Enable SAML SSO via Graph
+########################################
+resource "msgraph_update_resource" "enable_saml_sso" {
+  url = "servicePrincipals/${azuread_service_principal.saml_sp.object_id}"
 
-############################################################
-# 3) Create/rotate IdP token-signing certificate for SAML
-############################################################
-# Azure AD (Entra ID) uses this certificate to SIGN SAML tokens it issues.
-# This is NOT the same as SP credentials; use the dedicated token_signing resource.
+  body = {
+    preferredSingleSignOnMode  = "saml"
+    loginUrl                   = var.sign_on_url
+    notificationEmailAddresses = var.notification_email_addresses
+  }
+}
+
+########################################
+# 4) Relay State (optional)
+########################################
+resource "msgraph_update_resource" "relay_state" {
+  count = var.relay_state != null && var.relay_state != "" ? 1 : 0
+
+  url = "servicePrincipals/${azuread_service_principal.saml_sp.object_id}"
+
+  body = {
+    samlSingleSignOnSettings = {
+      relayState = var.relay_state
+    }
+  }
+}
+
+########################################
+# 5) Token Signing Certificate
+########################################
 resource "azuread_service_principal_token_signing_certificate" "saml" {
   count                = var.create_token_signing_cert ? 1 : 0
   service_principal_id = azuread_service_principal.saml_sp.id
 
-  # Optional cosmetics:
   display_name = "CN=${replace(var.app_display_name, " ", "-")}"
-  # Example of pinning the end date (RFC3339). Omit to use defaults.
-  # end_date     = "2030-12-31T23:59:59Z"
 }
 
 ########################################
-# 4) Assign users/groups to the app
+# 6) Assign Users / Groups
 ########################################
 resource "azuread_app_role_assignment" "assignments" {
   for_each = toset(var.assigned_object_ids)
 
   principal_object_id = each.value
   resource_object_id  = azuread_service_principal.saml_sp.id
-  # Built-in default "User" app role for enterprise apps
   app_role_id         = "00000000-0000-0000-0000-000000000000"
 }
 
+########################################
+# 7) Claims Mapping (optional)
+########################################
 resource "azuread_claims_mapping_policy" "this" {
   count        = var.claims_mapping_policy_definition_json != null ? 1 : 0
   display_name = "${var.app_display_name}-claims"

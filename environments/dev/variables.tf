@@ -34,3 +34,7 @@ variable "claims_mapping_policy_definition_json" {
   type    = string
   default = null
 }
+variable "saml_template_display_name" {
+  type    = string
+  default = "Microsoft Entra SAML Toolkit"
+}

@@ -38,15 +38,18 @@ Show more lines
 🔐 Authentication (AzureAD Provider v3)
 The AzureAD provider does NOT allow client_id/client_secret inside providers.tf.
 Terraform authentication must come from environment variables.
+
 If running locally (recommended during development):
 Run these exports in your shell:
-
 
 
 Shell
 export ARM_CLIENT_ID="APP_ID"
 export ARM_CLIENT_SECRET="SECRET"
 export ARM_TENANT_ID="TENANT_GUID"
+
+az login --use-device-code --tenant "<tenant-id>"
+
 
 Show more lines
 You may also place them into ~/.zshrc or ~/.bashrc.

@@ -42,7 +42,9 @@ resource "null_resource" "enable_saml_sso" {
   depends_on = [data.azuread_service_principal.saml_sp]
 
   provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
+    # interpreter = ["/bin/bash", "-c"] (use with Unix bash)
+    interpreter = ["C:/Program Files/Git/bin/bash.exe", "-c"]
+
     command = <<EOT
 set -euo pipefail
 
